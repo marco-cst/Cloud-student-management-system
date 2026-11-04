@@ -1,0 +1,31 @@
+node_modules/
+.env
+*.env
+client/node_modules/
+server/node_modules/
+dist/
+.DS_Store
+client/test-results/
+client/playwright-report/
+server/.local-data/
+
+# Material de trabajo local: no publicar documentos, planes ni capturas.
+/docs/
+/propuestas/
+/screenshots/
+*.md
+!/README.md
+
+# Secretos, respaldos y resultados generados.
+.env.*
+!.env.example
+**/.local-data/
+coverage/
+*.log
+*.ejson
+*.pem
+*.key
+*.p12
+*.pfx
+.idea/
+.vscode/

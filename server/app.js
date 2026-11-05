@@ -15,6 +15,8 @@ async function createApp(config) {
   await AuditEvent.init();
   const app = express();
   app.disable("x-powered-by");
+  // Only the explicitly configured local reverse proxy may supply client IPs.
+  app.set("trust proxy", config.trustProxy ?? false);
   app.use(helmet());
   app.use(express.json({ limit: "16kb" }));
   app.use(cookieParser());

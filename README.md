@@ -54,6 +54,8 @@ Las pruebas de integración y navegador usan MongoDB temporal y cuentas ficticia
 
 - No publicar `.env`, claves, respaldos ni datos personales. El archivo de ejemplo contiene solo valores de referencia.
 - En producción usar HTTPS, `COOKIE_SECURE=true`, `APP_ORIGIN` HTTPS y secretos exclusivos del entorno. No exponer directamente Express ni usar Vite como servidor público.
+- La plantilla `deploy/server.env.example` contiene solo valores de referencia. Guardar el entorno real fuera del repositorio. Para un único Nginx local, usar `TRUST_PROXY=loopback` y hacer que Nginx sobrescriba `X-Forwarded-For` con `$remote_addr`; por defecto Express no confía en proxies. No usar confianza global ni publicar el puerto 5000.
+- En el backend Linux ARM64 se validó la instalación de producción con `npm ci --omit=dev --ignore-scripts` y carga/verificación Argon2. Este comando no aprueba scripts globalmente; no extrapolarlo al build del frontend sin verificar sus dependencias nativas.
 - Los comandos `maintenance:accounts` y `migrate:academic` son mantenimiento de desarrollo: con `--apply` pueden eliminar datos. No son pasos de instalación; requieren autorización explícita y respaldo/restauración verificados.
 - Cerrar sesión elimina la cookie local. Restablecer o cambiar la contraseña invalida también las sesiones anteriores.
 

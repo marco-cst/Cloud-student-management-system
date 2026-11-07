@@ -1,31 +1,86 @@
+# Dependencias, compilaciones y caches. Los lockfiles SI se publican.
 node_modules/
-.env
-*.env
-client/node_modules/
-server/node_modules/
 dist/
-.DS_Store
-client/test-results/
-client/playwright-report/
-server/.local-data/
+build/
+.vite/
+.cache/
+*.tsbuildinfo
 
-# Material de trabajo local: no publicar documentos, planes ni capturas.
+# Configuracion real de cualquier entorno; conservar plantillas ficticias.
+.env
+.env.*
+*.env
+*.env.*
+!**/.env.example
+!**/*.env.example
+!**/.env.*.example
+!**/*.env.*.example
+
+# Claves, certificados y almacenes de credenciales locales.
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+.ssh/
+.npmrc
+
+# Datos, volcados y archivos de respaldo; no excluir scripts de mantenimiento.
+.local-data/
+/backups/
+/dumps/
+*.ejson
+*.bson
+*.dump
+*.archive
+*.bak
+*.backup
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Logs, cobertura y resultados de pruebas.
+logs/
+*.log
+*.log.*
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+
+# Material privado: solo el README raiz esta aprobado para esta publicacion.
 /docs/
 /propuestas/
 /screenshots/
+/GUIA_*
+/PLAN_*
 *.md
 !/README.md
 
-# Secretos, respaldos y resultados generados.
-.env.*
-!.env.example
-**/.local-data/
-coverage/
-*.log
-*.ejson
-*.pem
-*.key
-*.p12
-*.pfx
+# Temporales, historial de terminal y preferencias del equipo.
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.pid
+*.pid.lock
+.bash_history
+.python_history
+.DS_Store
+Thumbs.db
+Desktop.ini
 .idea/
 .vscode/

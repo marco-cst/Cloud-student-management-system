@@ -1,94 +1,110 @@
 # StudentHub · Student Management System
 
-Sistema administrativo de gestión estudiantil desarrollado como proyecto académico de **Cloud Computing, Hito 1**. Integra un frontend React, una API Express y persistencia MongoDB, con separación de roles y trazabilidad de operaciones.
+StudentHub es una aplicación web de gestión estudiantil desarrollada como proyecto académico de **Cloud Computing, Hito 1**. Fue desplegada en **Microsoft Azure bajo el modelo Infrastructure as a Service (IaaS)**, integrando una interfaz React, una API REST con Node.js y Express, y MongoDB Atlas para la persistencia de información.
 
-Esta publicación contiene código, pruebas y configuración de ejemplo. No publica una demo, direcciones de producción, credenciales ni datos del despliegue. Las instrucciones siguientes son exclusivamente para un entorno local independiente.
+El proyecto reúne desarrollo full-stack, administración de una máquina virtual Linux, configuración de un proxy inverso con HTTPS y controles de acceso para los perfiles de administrador y coordinador académico.
 
-## Funcionalidades y alcance
+## Funcionalidades principales
 
-- **Estudiantes:** crear, consultar, editar y eliminar; búsqueda, filtros y asociación con una carrera y nivel académico.
-- **Carreras:** crear, editar, activar e inactivar; duración configurable en años o semestres y validación de asignaciones.
-- **Usuarios:** creación de cuentas, edición de nombre/rol/estado y restablecimiento asistido de contraseña.
-- **Acceso:** login/logout, sesión JWT y cambio obligatorio tras un restablecimiento temporal.
-- **Auditoría:** registro de accesos, denegaciones y operaciones administrativas; consulta filtrada para administradores.
-- **Interfaz:** diseño adaptable, navegación por teclado, notificaciones y estados de carga/error.
+- **Gestión de estudiantes:** creación, consulta, edición y eliminación, con búsqueda, filtros y asociación a una carrera y nivel académico.
+- **Catálogo de carreras:** creación, edición, activación e inactivación; duración configurable en años o semestres y validación de asignaciones.
+- **Administración de usuarios:** creación de cuentas, actualización de nombre, rol y estado, y restablecimiento asistido de contraseña.
+- **Autenticación y autorización:** inicio y cierre de sesión, permisos por rol y cambio obligatorio después de un restablecimiento temporal.
+- **Auditoría administrativa:** registro de accesos y operaciones, con consulta filtrada para administradores.
+- **Experiencia de uso:** interfaz adaptable, navegación por teclado, notificaciones y estados de carga y error.
 
-El alcance es administrativo: no incluye matrícula financiera, calificaciones, asistencia ni autoservicio estudiantil. Las carreras y cuentas se inactivan; no tienen eliminación física mediante la API.
+## Arquitectura del sistema
 
-## Arquitectura
+La solución sigue una arquitectura cliente-servidor con separación entre presentación, lógica de aplicación y persistencia. El frontend consume la API REST mediante rutas relativas `/api/`; las credenciales de la base de datos permanecen en el backend.
 
 ```text
 Navegador
    | HTTPS
    v
-VM Azure IaaS · Ubuntu ARM64
+Microsoft Azure IaaS · VM Ubuntu ARM64
    Nginx
      |-- /       -> frontend React/Vite compilado
-     `-- /api/   -> Express en loopback, gestionado por systemd
+     `-- /api/   -> API Node.js/Express en loopback
+                   administrada mediante systemd
                             | TLS
                             v
                       MongoDB Atlas
 ```
 
-La arquitectura académica utiliza una sola VM. Atlas es un servicio externo; no se presupone una conexión privada, alta disponibilidad ni MongoDB instalado en la VM. La renovación TLS se realiza con Certbot y un hook que valida Nginx antes de recargarlo.
+React y Express son componentes separados, aunque se alojan en la misma VM. MongoDB Atlas funciona como servicio externo de persistencia, no como una base instalada en la máquina virtual.
 
-En desarrollo, Vite sirve el cliente y redirige `/api` a `127.0.0.1:5000`. El navegador no recibe credenciales de base de datos.
-
-## Tecnologías
+## Tecnologías utilizadas
 
 | Capa | Tecnologías |
 |---|---|
-| Cliente | React 19, Vite 8, React Router, Axios, Lucide React, CSS |
-| API | Node.js, Express 5, Mongoose 9, Zod |
+| Frontend | React 19, Vite 8, React Router, Axios, Lucide React, CSS |
+| Backend | Node.js, Express 5, Mongoose 9, Zod |
 | Seguridad | Argon2id, JSON Web Tokens, cookies HttpOnly, Helmet, express-rate-limit |
-| Persistencia | MongoDB con replica set; MongoDB Atlas en la arquitectura desplegada |
-| Infraestructura | Azure IaaS, Ubuntu, Nginx, systemd, Let's Encrypt/Certbot |
+| Persistencia | MongoDB y replica sets; MongoDB Atlas en el despliegue académico |
+| Infraestructura | Microsoft Azure IaaS, Ubuntu, Nginx, systemd, Let's Encrypt y Certbot |
 | Pruebas | node:test, Supertest, mongodb-memory-server, Vitest, Testing Library, Playwright |
 
-Las versiones exactas están fijadas en los lockfiles de `server/` y `client/`.
+Las versiones exactas de las dependencias están fijadas en los lockfiles de `server/` y `client/`.
 
-## Roles
+## Despliegue en Microsoft Azure
+
+El proyecto **fue desplegado y probado en Microsoft Azure** con los siguientes componentes:
+
+| Componente implementado | Responsabilidad |
+|---|---|
+| Máquina virtual Ubuntu 24.04 ARM64 | Entorno Linux para alojar y administrar la aplicación bajo el modelo IaaS |
+| Nginx | Servir el frontend compilado y actuar como proxy inverso de la API |
+| React + Vite | Interfaz de usuario compilada para producción |
+| Node.js + Express | API REST ejecutada como servicio mediante systemd y una cuenta dedicada sin privilegios administrativos |
+| MongoDB Atlas | Persistencia externa con conexión TLS y usuario limitado a la base de la aplicación |
+| Let's Encrypt + Certbot | Certificado HTTPS y renovación automática configurada, comprobada mediante una simulación con recarga validada de Nginx |
+
+Nginx centraliza el acceso HTTPS y reenvía las peticiones de la API a Express, que escucha únicamente en loopback. La configuración del backend se conserva en un archivo protegido fuera del repositorio.
+
+Las comprobaciones realizadas y las validaciones operativas pendientes se distinguen en [Pruebas y resultados](#pruebas-y-resultados). Las direcciones y credenciales del despliegue no forman parte de esta publicación.
+
+## Roles y permisos
 
 | Operación | Administrador | Coordinador |
 |---|:---:|:---:|
 | Consultar estudiantes y catálogo de carreras | Sí | Sí |
-| Crear/editar estudiantes | Sí | Sí |
+| Crear y editar estudiantes | Sí | Sí |
 | Eliminar estudiantes | Sí | No |
-| Crear/editar/inactivar carreras | Sí | No |
+| Crear, editar e inactivar carreras | Sí | No |
 | Gestionar cuentas y consultar auditoría | Sí | No |
 
-Las páginas administrativas también están restringidas en la interfaz. La autorización efectiva se comprueba en la API; ocultar un botón no sustituye esa comprobación. Estos roles no equivalen a roles de Azure IAM.
+El coordinador consulta el catálogo desde el formulario de estudiantes; las páginas de gestión administrativa se reservan al administrador. Los permisos se comprueban en la API además de reflejarse en la interfaz. Estos perfiles de aplicación son independientes de los roles de Azure IAM.
 
-## Requisitos locales
+## Instalación y ejecución local
 
-- Node.js **24 LTS** y npm. Alternativa: Node.js 22.13 o posterior de esa línea, mínimo compatible también con el linter fijado.
+### Requisitos
+
+- Node.js **24 LTS** y npm. Alternativa: Node.js 22.13 o posterior de esa línea, compatible también con el linter fijado.
 - Git y dos terminales.
-- MongoDB con **replica set**, necesario para las transacciones. Para la alternativa siguiente, Docker Engine o Docker Desktop en modo contenedores Linux.
-- Chromium de Playwright, solo para las pruebas de navegador.
+- MongoDB con **replica set**, necesario para las transacciones. La alternativa descrita a continuación utiliza Docker Engine o Docker Desktop en modo contenedores Linux.
+- Chromium de Playwright, únicamente para las pruebas de navegador.
 
-No utilices una URI ni una copia de datos de producción para desarrollar o probar.
+La instalación utiliza una base independiente de desarrollo. No reutilices credenciales ni datos de producción.
 
-## Instalación local
+### 1. Preparar MongoDB
 
-### 1. Preparar MongoDB independiente
-
-Desde una terminal, crea un contenedor y volumen exclusivos de desarrollo. El puerto se publica solo en loopback:
+Crea un contenedor y un volumen exclusivos de desarrollo. El puerto se publica solo en loopback:
 
 ```sh
 docker volume create studenthub-mongo-dev
 docker run --detach --name studenthub-mongo-dev --publish 127.0.0.1:27017:27017 --mount source=studenthub-mongo-dev,target=/data/db mongo:8.0 --replSet rs0 --bind_ip_all
 ```
 
-Espera a que MongoDB acepte conexiones. Inicializa el replica set **una sola vez**:
+Espera a que MongoDB acepte conexiones e inicializa el replica set **una sola vez**:
 
 ```sh
 docker exec studenthub-mongo-dev mongosh --quiet --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]})"
 docker exec studenthub-mongo-dev mongosh --quiet --eval "db.hello().isWritablePrimary"
 ```
 
-La última consulta debe devolver `true`; si todavía hay una elección en curso, repite solo esa consulta. Si el contenedor ya existe, revísalo y usa `docker start studenthub-mongo-dev` cuando corresponda: no lo borres ni reinicialices a ciegas. El volumen conserva los datos locales entre ejecuciones.
+La última consulta debe devolver `true`. Si todavía hay una elección en curso, repite solo esa consulta. Si el contenedor ya existe, revísalo y usa `docker start studenthub-mongo-dev` cuando corresponda; el volumen conserva los datos locales entre ejecuciones.
 
-Esta configuración sin autenticación es únicamente de desarrollo, ligada a loopback; no debe reutilizarse como configuración pública. También puedes usar un replica set ya existente con una base propia de desarrollo.
+Esta configuración sin autenticación es exclusivamente local y no debe exponerse a Internet. También puedes utilizar un replica set existente con una base propia de desarrollo.
 
 ### 2. Configurar el backend
 
@@ -100,15 +116,13 @@ cd server
 npm ci --include=dev --include=optional --ignore-scripts
 ```
 
-El comando de copia funciona en Bash y PowerShell y se detiene si `server/.env` ya existe; no sobrescribas una configuración propia para repetir la instalación.
-
-Edita `server/.env` privadamente. Conserva la URI local del ejemplo y sustituye `JWT_SECRET` por un secreto nuevo de al menos 32 caracteres. Puedes generar uno en tu terminal privada:
+El comando de copia funciona en Bash y PowerShell y se detiene si `server/.env` ya existe. Edita ese archivo privadamente: conserva la URI local del ejemplo y reemplaza `JWT_SECRET` por un secreto nuevo de al menos 32 caracteres. Puedes generarlo en una terminal privada:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 ```
 
-No compartas su salida ni la incorpores a Git. El placeholder del ejemplo se rechaza deliberadamente al arrancar.
+No compartas su salida ni la incorpores a Git. La aplicación rechaza el placeholder del ejemplo.
 
 ### 3. Crear el administrador local y arrancar la API
 
@@ -119,9 +133,9 @@ npm run create-admin
 npm run dev
 ```
 
-El bootstrap requiere una terminal interactiva, solicita una contraseña oculta de 12 a 128 caracteres y no sobrescribe una cuenta con el mismo correo. Si ya existe un administrador activo, no crea otro. Este paso escribe en **tu base local**; no lo ejecutes con configuración de producción.
+El bootstrap requiere una terminal interactiva y solicita una contraseña oculta de 12 a 128 caracteres. No sobrescribe una cuenta con el mismo correo ni crea otro administrador si ya existe uno activo. Este paso escribe en la base local configurada.
 
-La API escucha en `127.0.0.1:5000`. No existe registro público ni se distribuyen credenciales predeterminadas de acceso.
+La API escucha en `127.0.0.1:5000`. No existe registro público ni se distribuyen credenciales predeterminadas.
 
 ### 4. Arrancar el frontend
 
@@ -133,11 +147,11 @@ npm ci --include=dev --include=optional --ignore-scripts
 npm run dev
 ```
 
-Abre `http://localhost:5173` e inicia sesión con la cuenta local recién creada. No necesitas instalar dependencias desde la raíz ni crear un `.env` del cliente para esta configuración.
+Abre `http://localhost:5173` e inicia sesión con la cuenta local recién creada. Vite redirige `/api` al backend. No necesitas instalar dependencias desde la raíz ni crear un `.env` del cliente para esta configuración.
 
-Los comandos de instalación bloquean lifecycle scripts. Si una dependencia nativa no carga en tu plataforma, detente y revisa el error; no apruebes scripts globalmente ni cambies automáticamente el lockfile.
+Las instalaciones indicadas bloquean scripts de instalación. Si una dependencia nativa no carga, revisa su compatibilidad antes de aprobar scripts o cambiar el lockfile. No copies `node_modules` entre sistemas operativos o arquitecturas distintas.
 
-## Variables de entorno
+### Variables de entorno
 
 | Variable | Desarrollo local |
 |---|---|
@@ -150,22 +164,36 @@ Los comandos de instalación bloquean lifecycle scripts. Si una dependencia nati
 | `COOKIE_SECURE` | `false` únicamente para HTTP local |
 | `TRUST_PROXY` | `false` sin proxy de confianza |
 
-`deploy/server.env.example` es una plantilla genérica para un entorno HTTPS, no un archivo listo para ejecutar. Sustituye todos los valores de ejemplo en un archivo protegido fuera de Git. En un despliegue público, usar HTTPS, cookies Secure y secretos exclusivos; `loopback` solo corresponde a un proxy local confiable que sobrescribe las cabeceras reenviadas. No colocar URI, claves o contraseñas en variables `VITE_*`.
+`deploy/server.env.example` contiene una plantilla genérica para HTTPS. Sustituye sus valores de ejemplo en un archivo protegido fuera de Git antes de utilizarla. Un despliegue público requiere HTTPS, cookies Secure y secretos exclusivos. Usa `TRUST_PROXY=loopback` solo con un proxy local confiable que sobrescriba las cabeceras reenviadas; no habilites confianza global. Nunca coloques URI, claves o contraseñas en variables `VITE_*`.
 
 ## Seguridad implementada
 
-- Hash de contraseñas con Argon2id; no se retornan hashes en respuestas de usuario.
-- JWT en cookie `HttpOnly`, `SameSite=Strict` y `Path=/api`; `Secure` obligatorio en producción. La cookie es de sesión y el JWT tiene su propia expiración, sin renovación automática.
-- Token CSRF vinculado a la sesión, mantenido en memoria del cliente y enviado en `X-CSRF-Token` para mutaciones.
-- Verificación exacta de `Origin`, autenticación, autorización por rol y validación Zod en el servidor.
-- Límites de intentos en operaciones de autenticación sensibles y mensajes de error controlados.
-- Actualización transaccional de datos y auditoría en las operaciones administrativas revisadas.
-- Auditoría append-only a través de la aplicación; no equivale a inmutabilidad frente a un administrador de base de datos.
-- Cuenta de servicio no privilegiada y entorno protegido en la arquitectura desplegada; Express no se expone directamente a Internet.
+- **Contraseñas:** hash Argon2id, sin devolver hashes en las respuestas de usuario.
+- **Sesiones:** JWT de 15 minutos en cookie `HttpOnly`, `SameSite=Strict` y `Path=/api`; `Secure` obligatorio en producción. La cookie es de sesión y el JWT tiene una expiración independiente, sin renovación automática.
+- **Protección de solicitudes:** comprobación exacta de `Origin` y token CSRF vinculado a la sesión, conservado en memoria del cliente y enviado en `X-CSRF-Token` para mutaciones.
+- **Control de acceso:** autenticación y autorización por rol en el backend, validación Zod, límites de intentos en operaciones sensibles y mensajes de error controlados.
+- **Persistencia y trazabilidad:** transacciones en las mutaciones administrativas implementadas y auditoría de accesos y operaciones. El registro es append-only a través de la aplicación, no inmutable frente a un administrador de base de datos.
+- **Aislamiento del servicio:** cuenta no privilegiada, configuración protegida y acceso a Express a través de Nginx en el despliegue realizado.
 
-## Pruebas
+El cierre de sesión elimina la cookie del navegador, pero no revoca por sí solo una copia del JWT; cambiar o restablecer la contraseña invalida las sesiones anteriores mediante su versión. Asimismo, algunas validaciones de reglas pueden actualizar metadatos internos aunque rechacen una operación: no deben utilizarse como pruebas de solo lectura sobre datos reales.
 
-Ejecuta las suites secuencialmente. No configures el runner con direcciones públicas ni bases reales.
+## Pruebas y resultados
+
+### Pruebas automatizadas locales
+
+Resultados obtenidos el 7 de noviembre de 2026 en Windows, con Node.js 24.13.0 y npm 11.6.2, sin cambiar lockfiles ni utilizar una base de producción:
+
+| Comprobación | Resultado |
+|---|---|
+| Backend: API e integración | **42/42 aprobadas** |
+| Frontend: componentes | **32/32 aprobadas**, 4 archivos |
+| Playwright E2E con Chromium | **7/7 aprobadas** |
+| ESLint | **Sin errores** |
+| Compilación de producción, Vite 8.3.5 | **Correcta** |
+
+Las suites cubren autenticación, roles, CSRF, validación, persistencia, auditoría y flujos de interfaz. Backend y E2E utilizan `MongoMemoryReplSet`, bases temporales y datos ficticios; las pruebas de rollback con fallos controlados se realizaron en ese entorno aislado, no en Atlas.
+
+Para reproducirlas, ejecuta secuencialmente:
 
 ```sh
 # Desde server/
@@ -179,42 +207,32 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Las suites backend y E2E usan `MongoMemoryReplSet` con bases temporales y datos ficticios. El harness E2E no carga `.env` ni utiliza Atlas; requiere libres los puertos locales 5100 y 5180. Puede descargar el binario de MongoDB al primer uso. Las capturas/resultados generados no se publican. Vite/Rolldown y Argon2 necesitan binarios compatibles con la plataforma; no copies `node_modules` entre Windows, Linux o arquitecturas distintas.
+El harness E2E no carga `.env` ni conecta a Atlas; requiere libres los puertos locales 5100 y 5180. El primer uso puede descargar MongoDB y Chromium. Los resultados y capturas generados se excluyen de Git, y las credenciales ficticias de los tests solo pertenecen a esos entornos temporales.
 
-### Resultados locales de esta preparación
+El procedimiento Docker de instalación local está documentado, pero no se ejecutó durante esta revisión porque el daemon Docker no estaba disponible.
 
-Ejecución del 7 de noviembre de 2026 en Windows, con Node.js 24.13.0 y npm 11.6.2, conservando los lockfiles y sin usar una base de producción:
+### Comprobaciones sobre el despliegue en Azure
 
-| Comprobación | Resultado |
-|---|---|
-| API e integración, `npm test` en server | 42/42 aprobadas |
-| Componentes, `npm test` en client | 32/32 aprobadas, 4 archivos |
-| ESLint | Sin errores |
-| Build Vite 8.3.5 | Correcto |
-| Playwright/Chromium | 7/7 aprobadas |
+- **Comprobación directa:** acceso HTTPS con certificado válido, redirección HTTP a HTTPS, rechazo de acceso anónimo a endpoints protegidos, manejo de errores de formato y bloqueo de rutas de archivos privados.
+- **Validación manual reportada:** login/logout, atributos de cookie, expiración de sesión, rechazos CSRF, consultas administrativas y creación/edición persistente de entidades con ambos roles, con revisión de auditoría.
 
-Las pruebas backend incluyen RBAC, CSRF, transacciones y auditoría con fallos controlados **en bases temporales**, no en Atlas. El procedimiento Docker de instalación local está documentado, pero no se ejecutó en esta revisión porque el daemon Docker no estaba disponible.
+Estas evidencias corresponden a comprobaciones realizadas, no a una garantía de disponibilidad continua. Los resultados locales no sustituyen la aceptación de la infraestructura desplegada.
 
-### Evidencia y alcance
+### Validaciones operativas pendientes
 
-- **Automatización local:** resultados de la tabla anterior; los comandos indicados permiten repetir las suites en un entorno aislado. No equivalen a aceptación completa de la infraestructura pública.
-- **Comprobación directa del despliegue académico:** HTTPS, redirección HTTP, rechazo de acceso anónimo, errores de formato y exclusión de archivos privados. No se publica su dirección.
-- **Pruebas manuales reportadas:** login/logout, atributos de cookie, expiración, CSRF ausente/incorrecto, lecturas administrativas y creación/edición persistente de entidades con ambos roles.
-- **Pendientes de cierre independiente:** DELETE denegado con sesión real de coordinador y lectura de su auditoría, contraste actual de registros en Atlas y recuperación efectiva tras reinicio. No se afirma eliminación real de registros ni limpieza: se conservaron los datos existentes.
+- Cierre independiente de la prueba DELETE denegado con sesión real de coordinador y consulta de su auditoría.
+- Contraste independiente actualizado de los registros en Atlas, exclusivamente de lectura.
+- Habilitación y verificación del arranque automático del backend y recuperación efectiva tras reiniciar la VM.
 
-## Limitaciones conocidas
+No se afirma una prueba de eliminación real ni limpieza de datos del despliegue; los registros existentes se conservan.
 
-- Una sola VM no ofrece alta disponibilidad; el reinicio automático del backend y la prueba de reboot requieren validación operativa separada.
-- Logout borra la cookie del navegador, pero no revoca por sí solo una copia del JWT. Cambiar/restablecer contraseña sí incrementa la versión de sesión.
-- El endpoint de logout no es idempotente: solicitudes válidas independientes pueden producir varios eventos. Se observaron dos eventos separados; su origen no se atribuyó definitivamente ni se confirmó una falla.
-- Algunas reglas semánticas pueden incrementar revisiones internas antes de retornar 400/409. Un rechazo HTTP no garantiza ausencia de toda escritura; no usar esas solicitudes como pruebas de solo lectura.
-- No hay recuperación automática por correo. El restablecimiento es asistido por un administrador autorizado; no se envían contraseñas por email.
-- `maintenance:accounts` y `migrate:academic` son herramientas de mantenimiento de desarrollo que pueden alterar o eliminar datos con `--apply`; no son pasos de instalación ni de prueba de producción.
-- Las credenciales ficticias presentes en tests pertenecen solo a los harnesses temporales; no constituyen acceso a ningún despliegue.
-- El procedimiento Docker de desarrollo debe comprobarse en el equipo del lector; su disponibilidad no implica que se haya validado la recuperación de una VM pública.
+## Consideraciones técnicas y alcance
 
-## Contenido de la publicación
+- **Alcance académico y administrativo:** el sistema no incluye calificaciones, asistencia, matrícula financiera ni autoservicio estudiantil.
+- **Una sola VM:** la implementación no ofrece alta disponibilidad ni presupone operación permanente. La recuperación tras reinicio requiere la validación indicada anteriormente.
+- **Persistencia externa:** Atlas se utiliza mediante TLS; no se presenta como una base instalada en la VM ni como una integración privada de red demostrada.
+- **Ciclo de vida de entidades:** estudiantes cuentan con eliminación restringida al administrador; carreras y usuarios se inactivan para conservar su historial.
+- **Recuperación de acceso:** el restablecimiento es asistido por un administrador autorizado; no existe recuperación automática por correo.
+- **Mantenimiento:** los scripts de mantenimiento pueden alterar o eliminar datos y no forman parte de la instalación normal. Su uso requiere autorización y respaldos verificados.
 
-Se incluyen fuentes, pruebas, lockfiles y plantillas sin secretos. Se excluyen entornos reales, dependencias instaladas, builds, logs, respaldos, certificados, capturas, informes y planes internos. `.gitignore` previene altas accidentales, pero no elimina archivos ya versionados ni secretos del historial: revisa ambos antes de publicar cambios.
-
-No conectes las pruebas a producción ni uses el proyecto como justificación para publicar datos personales. Los datos y recursos existentes del despliegue académico no se modifican como parte de esta preparación.
+El repositorio incluye fuentes, pruebas, lockfiles y plantillas ficticias. Los entornos reales, secretos, datos personales, respaldos y documentos internos permanecen fuera de la publicación. Antes de publicar cambios, revisa tanto los archivos como el historial: `.gitignore` no elimina contenido ya versionado.
